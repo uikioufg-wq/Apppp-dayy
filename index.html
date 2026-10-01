@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>每日療癒日曆</title>
+
+  <!-- PWA & iOS 主畫面設定 -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="療癒日曆">
+  <meta name="theme-color" content="#f7f4ee">
+  <link rel="apple-touch-icon" href="https://picsum.photos/192/192">
+
+  <style>
+    :root {
+      --bg-color: #f7f4ee;
+      --card-bg: #ffffff;
+      --primary-color: #c86d51;
+      --text-main: #332c2b;
+      --text-sub: #8c827a;
+      --border-color: #eae5dc;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", "Microsoft JhengHei", sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    /* 日曆卡片容器 */
+    .calendar-card {
+      background: var(--card-bg);
+      width: 100%;
+      max-width: 380px;
+      border-radius: 24px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.05), 0 5px 15px rgba(0, 0, 0, 0.03);
+      padding: 36px 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      border: 1px solid var(--border-color);
+      transition: transform 0.2s ease;
+    }
+
+    .calendar-card:active {
+      transform: scale(0.995);
+    }
+
+    /* 頂部裝飾孔（模擬撕頁日曆） */
+    .binder-holes {
+      display: flex;
+      gap: 40px;
+      position: absolute;
+      top: 16px;
+    }
+
+    .hole {
+      width: 10px;
+      height: 10px;
+      background-color: var(--bg-color);
+      border-radius: 50%;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.15);
+    }
+
+    /* 日期資訊區域 */
+    .header-info {
+      text-align: center;
+      margin-top: 12px;
+    }
+
+    .year-month {
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      color: var(--text-sub);
+      text-transform: uppercase;
+    }
+
+    .day-number {
+      font-size: 5.5rem;
+      font-weight: 800;
+      color: var(--primary-color);
+      line-height: 1;
+      margin: 12px 0 4px 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .weekday {
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: var(--text-sub);
+      margin-bottom: 24px;
+    }
+
+    /* 分隔線 */
+    .divider {
+      width: 40px;
+      height: 2px;
+      background-color: var(--primary-color);
+      opacity: 0.4;
+      margin-bottom: 28px;
+      border-radius: 2px;
+    }
+
+    /* 療癒語錄區域 */
+    .quote-container {
+      text-align: center;
+      padding: 0 8px;
+    }
+
+    .quote-text {
+      font-size: 1.15rem;
+      line-height: 1.7;
+      color: var(--text-main);
+      font-weight: 400;
+      letter-spacing: 0.5px;
+    }
+
+    .quote-author {
+      margin-top: 16px;
+      font-size: 0.85rem;
+      color: var(--text-sub);
+    }
+
+    /* iOS 加入主畫面提示小按鈕 */
+    .pwa-hint {
+      margin-top: 24px;
+      font-size: 0.75rem;
+      color: var(--text-sub);
+      background: rgba(0,0,0,0.03);
+      padding: 6px 14px;
+      border-radius: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <main class="calendar-card">
+    <div class="binder-holes">
+      <div class="hole"></div>
+      <div class="hole"></div>
+    </div>
+
+    <div class="header-info">
+      <div class="year-month" id="yearMonth">2026 / OCT</div>
+      <div class="day-number" id="dayNumber">02</div>
+      <div class="weekday" id="weekday">星期五</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="quote-container">
+      <p class="quote-text" id="quoteText">加載中...</p>
+      <div class="quote-author" id="quoteAuthor"></div>
+    </div>
+
+    <div class="pwa-hint">💡 點擊瀏覽器分享選單「加入主畫面」即可當作 App 使用</div>
+  </main>
+
+  <script>
+    // 1. 每日語錄資料庫（以 MM-DD 為索引）
+    const quotesDatabase = {
+      "10-01": { text: "允許自己慢下來，休息也是前進的一種方式。", author: "—— 每日絮語" },
+      "10-02": { text: "順其自然，今天也是值得溫柔以待的一天。", author: "—— 每日絮語" },
+      "10-03": { text: "不必事事完美，盡力而為就已經足夠優秀。", author: "—— 每日絮語" },
+      "10-04": { text: "給自己一點時間，發芽不需要急於一時。", author: "—— 每日絮語" },
+      "10-05": { text: "保持好奇，生活處處都是未預期的驚喜。", author: "—— 每日絮語" }
+    };
+
+    const defaultQuotes = [
+      { text: "今天也要對自己好一點，喝杯溫水，好好呼吸。", author: "—— 生活提案" },
+      { text: "走得慢沒關係，只要你一直在向前走。", author: "—— 生活提案" },
+      { text: "擁抱今天的變化，那是成長開始的痕跡。", author: "—— 生活提案" }
+    ];
+
+    // 2. 日期渲染邏輯
+    function renderCalendar() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const monthIndex = now.getMonth();
+      const date = now.getDate();
+      const dayIndex = now.getDay();
+
+      const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+      const weekdaysCN = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
+
+      // 格式化日期字串
+      const monthStr = String(monthIndex + 1).padStart(2, '0');
+      const dateStr = String(date).padStart(2, '0');
+      const dateKey = `${monthStr}-${dateStr}`;
+
+      // 渲染日期 UI
+      document.getElementById('yearMonth').innerText = `${year} / ${monthNames[monthIndex]}`;
+      document.getElementById('dayNumber').innerText = dateStr;
+      document.getElementById('weekday').innerText = weekdaysCN[dayIndex];
+
+      // 取得並渲染當日語錄
+      const todayQuote = quotesDatabase[dateKey] || defaultQuotes[date % defaultQuotes.length];
+      document.getElementById('quoteText').innerText = todayQuote.text;
+      document.getElementById('quoteAuthor').innerText = todayQuote.author;
+    }
+
+    // 執行初始渲染
+    renderCalendar();
+
+    // 3. 動態 Service Worker 註冊（實現 PWA 離線瀏覽與快取）
+    if ('serviceWorker' in navigator) {
+      const swCode = `
+        const CACHE_NAME = 'daily-calendar-v1';
+        self.addEventListener('install', (e) => {
+          e.waitUntil(
+            caches.open(CACHE_NAME).then((cache) => cache.addAll(['/']))
+          );
+        });
+        self.addEventListener('fetch', (e) => {
+          e.respondWith(
+            caches.match(e.request).then((res) => res || fetch(e.request))
+          );
+        });
+      `;
+      const blob = new Blob([swCode], { type: 'application/javascript' });
+      const swUrl = URL.createObjectURL(blob);
+      
+      navigator.serviceWorker.register(swUrl)
+        .then(() => console.log('Service Worker 註冊成功'))
+        .catch((err) => console.log('Service Worker 註冊失敗:', err));
+    }
+  </script>
+</body>
+</html>
